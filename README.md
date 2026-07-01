@@ -1,4 +1,4 @@
-# Sistema de Agendamentos para Barbearia
+# Sistema de agendamentos para barbearia
 
 Projeto em desenvolvimento para praticar Python, PostgreSQL e modularizacao.
 
