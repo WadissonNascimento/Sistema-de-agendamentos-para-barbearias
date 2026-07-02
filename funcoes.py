@@ -281,12 +281,13 @@ def menuCliente(opcoes):
         nomeCliente = str(input('Qual seu nome: '))
         
         resumo = funcoes_cliente.exibirResumoAgendamento(cursor, conexao, nomeCliente, escolhaServico, escolhaHorario, horarioFim, valor, dataCompleta, escolhaBarbeiro)
+    elif resposta == 2:
+        funcoes_cliente.mostrarAgendamentos(cursor)
+    
+    elif resposta == 3:
+        funcoes_cliente.mostrarHistorico(cursor)
 
     
-
-
-
-
 def conexaoBanco():
     conexao = psycopg2.connect(
         host="localhost",

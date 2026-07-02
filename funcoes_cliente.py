@@ -1,6 +1,64 @@
 import funcoes
 import datetime
 
+def mostrarHistorico(cursor):
+    funcoes.limpar_terminal()
+
+    nome = pegarNomeUsuario()
+
+    cursor.execute('''
+    SELECT *
+    FROM agendamentos
+    WHERE nome = %s AND status = 'concluido' OR status = 'cancelado'
+    ORDER BY data, horario_inicio
+    ''',
+    (nome,)
+    )
+
+def pegarNomeUsuario():
+    funcoes.limpar_terminal()
+    while True:
+        nome = input('Digite seu nome de usuário: ').strip()
+
+        if nome == '':
+             input('Preencha o nome corretamente! aperte enter parar digitar novamente...')
+        else:
+            break
+        
+
+
+    return nome
+
+
+def mostrarAgendamentos(cursor):
+    while True:
+        funcoes.limpar_terminal()
+        nome = pegarNomeUsuario()
+        cursor.execute('''
+        SELECT *
+        FROM agendamentos
+        WHERE status = 'agendado' AND nome = %s
+        ORDER BY data, horario_inicio
+        ''',
+        (nome,)
+        )
+
+        agendamentos = cursor.fetchall()
+
+        if not agendamentos:
+            input('Não há agendamento com esse nome! pressione enter para voltar... ')
+
+        else:
+            print(f'{'Cliente:':<15} {'Serviço:':<15} {'Horario-Inicio:':<15} {'Horario-fim:':<15} {'Barbeiro:':<15} {'Valor:':<15} {'Status:':<15} {'Data:':<15}')
+            print('-'*120)
+            for nome, servico, horarioInicio, horarioFim, barbeiro,  valor, status, data in agendamentos:
+                print(f'{nome:<15} {servico:<15} {horarioInicio.strftime('%H:%M'):<15} {horarioFim.strftime('%H:%M'):<15} {barbeiro:<15} {valor:<15} {status:<15} {data.strftime('%d/%m/%y'):<15}')
+            
+            print()
+            input('Pressione enter para sair..')
+            break
+
+
 def exibirResumoAgendamento(cursor, conexao, nomeCliente, escolhaServico, escolhaHorario, horarioFim, valor, dataCompleta, escolhaBarbeiro):
     while True:
 
@@ -25,6 +83,7 @@ def exibirResumoAgendamento(cursor, conexao, nomeCliente, escolhaServico, escolh
         elif confirmacao == 2:
             print('Processo de agendamento cancelado.')
             break
+
 
 def escolherHorario(cursor, escolhaBarbeiro, escolhaDiaSemana, diaAtual, dataCompleta, duracao):
      while True:
@@ -127,7 +186,6 @@ def escolherHorario(cursor, escolhaBarbeiro, escolhaDiaSemana, diaAtual, dataCom
             break
 
         
-
 def escolherServico(cursor):
     while True:
             funcoes.limpar_terminal()
