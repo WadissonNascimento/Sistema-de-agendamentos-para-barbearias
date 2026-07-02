@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import time
 import datetime
 import funcoes_cliente
+import funcoes_barbeiro
 
 load_dotenv()
 
@@ -169,9 +170,11 @@ def menuAdmin(opcoes):
             break
 
 
-def menuBarbeiro(opcoes, id):
+def menuBarbeiro(opcoes):
+    id = funcoes_barbeiro.pegarIdBarbeiro()
     while True:
         limpar_terminal()
+
         cursor, conexao = conexaoBanco()
         titulo('BEM VINDO AO PAINEL DO BARBEIRO')
         for n in range(len(opcoes)):
@@ -187,69 +190,28 @@ def menuBarbeiro(opcoes, id):
             except:
                 print('Selecione uma opcao valida!')
         if resposta == 3:
-                limpar_terminal()
-                titulo('DISPONIBILIDADE DO BARBEIRO')
-                cursor.execute('''
-                SELECT *
-                FROM disponibilidade
-                WHERE id_barbeiro = %s
-                ORDER BY CASE dia_semana
-                    WHEN 'segunda' THEN 1
-                    WHEN 'terca' THEN 2
-                    WHEN 'quarta' THEN 3
-                    WHEN 'quinta' THEN 4
-                    WHEN 'sexta' THEN 5
-                    WHEN 'sabado' THEN 6
-                    WHEN 'domingo' THEN 7
-                END
-                ''',
-                (id,)
-                )
-                horarios = cursor.fetchall()
-                colunas = [coluna[0] for coluna in cursor.description]
-                print(f'{colunas[1]:<20} {colunas[2]:<20} {colunas[3]:<30}')
-                print('-'*85)
-                for id_barbeiro, dia, horario_inicio, horario_fim in horarios:
-                    inicio = horario_inicio.strftime('%H:%M')
-                    fim = horario_fim.strftime('%H:%M')
-                    print(f'{dia:<20} {inicio:<20} {fim:<30}')
-                while True:
-                    diaAlteracao = input('Digite o dia que deseja alterar o horario ou enter pra sair: ')
-                    diasDaSemana = ['segunda', 'terca', 'quarta', 'quinta', 'sexta']
-                    try:
-                        if diaAlteracao in  diasDaSemana:
-                            alteracao = input('Deseja alterar o inicio ou o fim? ').strip().lower()
-                            alteracaoHorario = input('Digite o novo horario no formato (00:00): ')
-                            if alteracao == 'inicio':
-                                cursor.execute('''
-                                UPDATE disponibilidade
-                                SET horario_inicio = %s
-                                WHERE id_barbeiro = %s AND dia_semana = %s
-                                ''',
-                                (alteracaoHorario, id, diaAlteracao )
-                                )
-                                conexao.commit()
-                                break
-                            elif alteracao == 'fim':
-                                cursor.execute('''
-                                UPDATE disponibilidade
-                                SET horario_fim = %s
-                                WHERE id_barbeiro = %s AND dia_semana = %s
-                                ''',
-                                (alteracaoHorario, id, diaAlteracao )
-                                )
-                                conexao.commit()
-                                break
-                            else:
-                                print('preencha os dados corretamente')
-                        elif diaAlteracao == '':
-                            break
-                        else:
-                            print('preencha os dados corretamente')
-                    except:
-                        print('Preencha os dados corretamente!')
-        elif resposta == 4:
-            break
+            funcoes_barbeiro.exibirDisponibilidade(cursor, id)
+
+            print('-'*85)
+            print('Deseja alterar algo na disponibilidade? ')
+            print('[ 0 ] para alterar inicio \n[ 1 ] para alterar fim \n[ 2 ] para alterar o status \n[ 3 ] para sair')
+            escolherAlteracao = int(input())
+            
+            if escolherAlteracao == 0:
+                dia = input('Qual Dia deseja alterar? ')
+                horarioInicio = input('Digite o novo horario: ')
+                funcoes_barbeiro.alterarDisponibilidadeInicio(cursor, dia, horarioInicio, id, conexao)
+
+            elif escolherAlteracao == 1:
+                dia = input('Qual Dia deseja alterar? ')
+                horarioFim = input('Digite o novo horario: ')
+                funcoes_barbeiro.alterarDisponibilidadeFim(cursor, dia, horarioFim, id, conexao)
+
+            elif escolherAlteracao == 2:
+                dia = input('Qual Dia deseja alterar? ')
+                funcoes_barbeiro.alterarStatus(cursor, dia, id, conexao)
+
+
 
 def menuCliente(opcoes):
     limpar_terminal()

@@ -9,7 +9,7 @@ def mostrarHistorico(cursor):
     cursor.execute('''
     SELECT *
     FROM agendamentos
-    WHERE nome = %s AND status = 'concluido' OR status = 'cancelado'
+    WHERE nome = %s AND status IN ('concluido', 'cancelado')
     ORDER BY data, horario_inicio
     ''',
     (nome,)
