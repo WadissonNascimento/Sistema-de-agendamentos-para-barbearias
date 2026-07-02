@@ -5,6 +5,7 @@ import time
 import datetime
 import funcoes_cliente
 import funcoes_barbeiro
+import funcoes_admin
 
 load_dotenv()
 
@@ -22,15 +23,6 @@ def titulo(msg):
 
 
 def menuAdmin(opcoes):
-    horario_padrao = [
-        ('segunda', '09:00', '18:00'),
-        ('terca', '09:00', '18:00'),
-        ('quarta', '09:00', '18:00'),
-        ('quinta', '09:00', '18:00'),
-        ('sexta', '09:00', '18:00'),
-        ('sabado','09:00', '18:00' ),
-        ('domingo','09:00', '18:00' )
-    ]
     cursor, conexao = conexaoBanco()
 
     while True:
@@ -52,121 +44,15 @@ def menuAdmin(opcoes):
                 print('Selecione uma opcao valida!')
 
         if resposta == 1:
-            limpar_terminal()
-            titulo('CADASTRO DE BARBEIRO')
-
-            while True:
-                nome = input('NOME: ')
-                telefone = input('TELEFONE: ').replace(' ', '').replace('(', '').replace(')', '').replace('-', '').strip()
-                email = input('EMAIL: ')
-
-                telefone_valido = telefone.isdigit() and len(telefone) == 11
-                email_valido = '@' in email and '.' in email
-
-                if telefone_valido and email_valido:
-                    break
-                else:
-                    print('Digite os dados corretamente!')
-
-            cursor.execute('''
-            INSERT INTO barbeiros (nome, telefone, email)
-            VALUES (%s, %s, %s)
-            RETURNING id
-            ''',
-            (nome, telefone, email)
-            )
-
-            barbeiro_id =  cursor.fetchone()[0]
-            for dia, inicio, fim in horario_padrao:
-                cursor.execute('''
-                INSERT INTO disponibilidade (id_barbeiro, dia_semana, horario_inicio, horario_fim)
-                VALUES (%s, %s, %s, %s)
-                ''',
-                (barbeiro_id, dia, inicio, fim )
-                )
-
-
-            conexao.commit()
-
-            print('Barbeiro cadastrado com sucesso')
-            print('Você sera redirecionado em 3 segundos')
-            print('1', end='')
-            time.sleep(1)
-            print('2', end='')
-            time.sleep(1)
-            print('3')
-            time.sleep(1)
+            funcoes_admin.cadastrarBarbeiro(cursor, conexao)
 
         elif resposta == 2:
-            limpar_terminal()
-            titulo('BARBEIROS CADASTRADOS')
-            cursor.execute('''
-            SELECT * FROM barbeiros
-            ''')
-
-            barbeiros = cursor.fetchall()
-
-            if barbeiros:
-                colunas = [coluna[0] for coluna in cursor.description]
-                print(f'{colunas[0]:<10}{colunas[1]:<20}{colunas[2]:<30}{colunas[3]:<40}')
-
-                print('-' * 85)
-                for barbeiro in barbeiros:
-                    print(f'{barbeiro[0]:<10}{barbeiro[1]:<20}{barbeiro[2]:<30}{barbeiro[3]:<40}')
-
-                
-                print()
-                id_Consulta = input('Digite o ID do barbeiro para consultar os horarios de trabalho ou enter para sair: ').strip()
-                if id_Consulta == '':
-                    return
-                try:
-                    cursor.execute('''
-                    SELECT *
-                    FROM disponibilidade
-                    WHERE id_barbeiro = %s
-                    ORDER BY CASE dia_semana
-                        WHEN 'segunda' THEN 1
-                        WHEN 'terca' THEN 2
-                        WHEN 'quarta' THEN 3
-                        WHEN 'quinta' THEN 4
-                        WHEN 'sexta' THEN 5
-                        WHEN 'sabado' THEN 6
-                        WHEN 'domingo' THEN 7
-                    END
-                    ''',
-                    (id_Consulta,)
-                    )
-
-                    disponibilidadeBarbeiro =  cursor.fetchall()
-                    coluna = [coluna[0] for coluna in cursor.description]
-
-                    cursor.execute('''
-                    SELECT *
-                    FROM barbeiros
-                    WHERE id = %s
-                    ''',
-                    (id_Consulta,)
-                    )
-                    nomeBarbeiro = cursor.fetchall()
-                    limpar_terminal()
-                    titulo(f'Horários do barbeiro {nomeBarbeiro[0][1]}')
-                    print(f'{coluna[1]:<20} {coluna[2]:<20} {coluna[3]:<20}')
-                    for id_barbeiro, dia_semana, horario_inicio, horario_fim in disponibilidadeBarbeiro:
-                        inicio = horario_inicio.strftime('%H:%M')
-                        final = horario_fim.strftime('%H:%M')
-                        print(f'{dia_semana:<20} {inicio:<20} {final:<20}')
-                    print('-'*85)
-                    input('Pressione enter para voltar...')
-                except:
-                    print('Preencha um id válido')
-                    time.sleep(5)
-
-
+            funcoes_admin.exibirEquipe(cursor, conexao)
         
+        elif resposta == 3:
+            funcoes_admin.exibirAgendaGeral(cursor, conexao)
 
-            else:
-                input('Nao ha barbeiros cadastrados, pressione enter para retornar ao menu...')
-        else:
+        elif resposta == 4:
             break
 
 
