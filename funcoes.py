@@ -189,12 +189,17 @@ def menuBarbeiro(opcoes):
                     break
             except:
                 print('Selecione uma opcao valida!')
-        if resposta == 3:
+        if resposta == 1:
+            funcoes_barbeiro.mostrarAgendaHoje(cursor, id, conexao)
+        elif resposta == 2:
+            funcoes_barbeiro.exibirAgendaGeral(cursor, id, conexao)
+
+        elif resposta == 3:
             funcoes_barbeiro.exibirDisponibilidade(cursor, id)
 
             print('-'*85)
             print('Deseja alterar algo na disponibilidade? ')
-            print('[ 0 ] para alterar inicio \n[ 1 ] para alterar fim \n[ 2 ] para alterar o status \n[ 3 ] para sair')
+            print('[ 0 ] para alterar inicio \n[ 1 ] para alterar fim \n[ 2 ] para alterar o status \n[ 3 ] para voltar ao menu')
             escolherAlteracao = int(input())
             
             if escolherAlteracao == 0:
@@ -210,6 +215,8 @@ def menuBarbeiro(opcoes):
             elif escolherAlteracao == 2:
                 dia = input('Qual Dia deseja alterar? ')
                 funcoes_barbeiro.alterarStatus(cursor, dia, id, conexao)
+        elif resposta == 4:
+            break
 
 
 
