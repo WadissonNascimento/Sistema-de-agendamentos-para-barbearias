@@ -1,8 +1,7 @@
-import funcoes
-import funcoes_barbeiro
+from menus.menuBarbeiro import menuBarbeiro
 
 
 opcoes = ['Agenda do dia', 'Agenda geral', 'Disponibilidade semanal', 'Sair']
 
-funcoes.menuBarbeiro(opcoes)
+menuBarbeiro(opcoes)
 

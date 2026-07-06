@@ -1,8 +1,13 @@
-import funcoes
+import menus.menuAdmin as menuAdmin
 import datetime
+from conexaoBanco import conexaoBanco
+from uteis import limpar_terminal, titulo
 
-def mostrarHistorico(cursor):
-    funcoes.limpar_terminal()
+
+
+def mostrarHistorico():
+    cursor, conexao = conexaoBanco()
+    limpar_terminal()
 
     nome = pegarNomeUsuario()
 
@@ -15,8 +20,21 @@ def mostrarHistorico(cursor):
     (nome,)
     )
 
+    historico = cursor.fetchall()
+
+
+    print(f'{'Cliente:':<15} {'Serviço:':<15} {'Horario-Inicio:':<15} {'Horario-fim:':<15} {'Barbeiro:':<15} {'Valor:':<15} {'Status:':<15} {'Data:':<15}')
+    print('-'*120)
+
+    if not historico:
+        input('Não há histórico disponivel, pressioe enter para voltar...')
+
+    else:
+        for nome, servico, horarioInicio, horarioFim, barbeiro,  valor, status, data in historico:
+            print(f'{nome:<15} {servico:<15} {horarioInicio.strftime('%H:%M'):<15} {horarioFim.strftime('%H:%M'):<15} {barbeiro:<15} {valor:<15} {status:<15} {data.strftime('%d/%m/%y'):<15}')
+
 def pegarNomeUsuario():
-    funcoes.limpar_terminal()
+    limpar_terminal()
     while True:
         nome = input('Digite seu nome de usuário: ').strip()
 
@@ -32,7 +50,7 @@ def pegarNomeUsuario():
 
 def mostrarAgendamentos(cursor):
     while True:
-        funcoes.limpar_terminal()
+        menuAdmin.limpar_terminal()
         nome = pegarNomeUsuario()
         cursor.execute('''
         SELECT *
@@ -62,14 +80,13 @@ def mostrarAgendamentos(cursor):
 def exibirResumoAgendamento(cursor, conexao, nomeCliente, escolhaServico, escolhaHorario, horarioFim, valor, dataCompleta, escolhaBarbeiro):
     while True:
 
-        funcoes.limpar_terminal()
+        limpar_terminal()
             
-        funcoes.titulo('RESUMO DO AGENDAMENTO')
+        titulo('RESUMO DO AGENDAMENTO')
 
-        print(f'data: {dataCompleta}\nserviço: {escolhaServico}\nhorário: {escolhaHorario.strftime('%H:%M')}\nbarbeiro: {escolhaBarbeiro}\nCliente: {nomeCliente}\nvalor: {valor}')
+        print(f'{'data:':<10} {dataCompleta.strftime('%D/%M')}\n{'serviço:':<10} {escolhaServico}\n{'horário:':<10} {escolhaHorario.strftime('%H:%M')}\n{'barbeiro:':<10} {escolhaBarbeiro}\n{'Cliente:':<10} {nomeCliente}\n{'valor:':<10} {valor}')
 
         confirmacao = int(input('Aperte [ 1 ] para confirmar ou [ 2 ] para cancelar: ').strip())
-        print(confirmacao)
         if confirmacao == 1:
             cursor.execute('''
             INSERT INTO agendamentos (nome, servico, horario_inicio, horario_fim, barbeiro, valor, status, data)
@@ -83,13 +100,15 @@ def exibirResumoAgendamento(cursor, conexao, nomeCliente, escolhaServico, escolh
         elif confirmacao == 2:
             print('Processo de agendamento cancelado.')
             break
+        else:
+            input('Selecione uma das opções acima! pressione enter para escolher novamente...')
 
 
 def escolherHorario(cursor, escolhaBarbeiro, escolhaDiaSemana, diaAtual, dataCompleta, duracao):
      while True:
-        funcoes.limpar_terminal()
+        limpar_terminal()
 
-        funcoes.titulo('Horários Disponiveis')
+        titulo('Horários Disponiveis')
             
         cursor.execute('''
         SELECT horario_inicio, horario_fim
@@ -102,9 +121,12 @@ def escolherHorario(cursor, escolhaBarbeiro, escolhaDiaSemana, diaAtual, dataCom
         disponibilidade = cursor.fetchall()
         disponibilidadeInicio = disponibilidade[0][0]
         disponibilidadeFim = disponibilidade[0][1]
+        if not disponibilidade:
+            input('Esse barbeiro não possui dias disponíveis')
+            continue
 
         cursor.execute('''
-        SELECT horario_inicio
+        SELECT horario_inicio, horario_fim
         FROM agendamentos
         WHERE status = 'agendado' AND barbeiro = %s AND data = %s
         ''',
@@ -112,9 +134,6 @@ def escolherHorario(cursor, escolhaBarbeiro, escolhaDiaSemana, diaAtual, dataCom
         )
 
         horariosOcupados = cursor.fetchall()
-
-        horariosOcupados = [horario[0].strftime('%H:%M') for horario in horariosOcupados]
-
 
         horarios = {
             'manha' : [],
@@ -124,27 +143,33 @@ def escolherHorario(cursor, escolhaBarbeiro, escolhaDiaSemana, diaAtual, dataCom
 
         inicio = datetime.datetime.combine(diaAtual, disponibilidadeInicio)
         fim = datetime.datetime.combine(diaAtual, disponibilidadeFim)
-            
+        
+
         while inicio < fim:
+            horario_ocupado = False
             hora = inicio.hour
             horario_formatado = inicio.strftime('%H:%M')
-            if hora < 12:
-                if horario_formatado in horariosOcupados:
-                    pass
-                else:
-                    horarios['manha'].append(inicio.strftime('%H:%M'))
-            elif hora < 18:
-                if horario_formatado in horariosOcupados:
-                    pass
-                else:
-                    horarios['tarde'].append(inicio.strftime('%H:%M'))
-            else:
-                if horario_formatado in horariosOcupados:
-                    pass
-                else:
-                    horarios['noite'].append(inicio.strftime('%H:%M'))
+            novo_fim = inicio + datetime.timedelta(minutes=duracao)
+            for inicio_ocupado, fim_ocupado in horariosOcupados:
+                inicio_ocupado = datetime.datetime.combine(dataCompleta, inicio_ocupado)
+                fim_ocupado = datetime.datetime.combine(dataCompleta, fim_ocupado)
 
-            inicio += datetime.timedelta(minutes=30)
+                if inicio < fim_ocupado and novo_fim > inicio_ocupado:
+                    horario_ocupado = True
+                    break
+            if novo_fim > fim:
+                horario_ocupado = True
+        
+            if not horario_ocupado:
+                if hora < 12:
+                    horarios['manha'].append(horario_formatado)
+                elif hora < 18:
+                    horarios['tarde'].append(horario_formatado)
+                else:
+                    horarios['noite'].append(horario_formatado)
+
+
+            inicio += datetime.timedelta(minutes=10)
             
         todosHorarios = horarios['manha'] + horarios['tarde'] + horarios['noite'] 
             
@@ -169,28 +194,29 @@ def escolherHorario(cursor, escolhaBarbeiro, escolhaDiaSemana, diaAtual, dataCom
         print()
         print('-'*85)
 
-        escolhaHorarioTexto = input('Escolha um dos horarios acima: ').strip()
+        try:
+            escolhaHorarioTexto = input('Escolha um dos horarios acima: ').strip()
 
-        escolhaHorario = datetime.datetime.strptime(escolhaHorarioTexto, ('%H:%M')).time()
+            escolhaHorario = datetime.datetime.strptime(escolhaHorarioTexto, ('%H:%M')).time()
 
-        horarioInicio = datetime.datetime.combine(dataCompleta, escolhaHorario)
-        horarioFim = horarioInicio + datetime.timedelta(minutes=duracao)
-        horarioFim = horarioFim.time()
+            horarioInicio = datetime.datetime.combine(dataCompleta, escolhaHorario)
+            horarioFim = horarioInicio + datetime.timedelta(minutes=duracao)
+            horarioFim = horarioFim.time()
 
-        if escolhaHorarioTexto not in todosHorarios:
-            print(escolhaHorarioTexto, horarios)
-            input('Escolha um dos horarios que aparecem acima! aperte enter para escolher novamente...')
-            
-        else:
-            return escolhaHorario, horarioFim
-            break
+            if escolhaHorarioTexto not in todosHorarios:
+                input('Escolha um dos horarios que aparecem acima! aperte enter para escolher novamente...')
+                
+            else:
+                return escolhaHorario, horarioFim
+        except ValueError:
+            input('Digite um dos horários mostrados acima!!')
 
         
-def escolherServico(cursor):
+def escolherServico(cursor, conexao):
     while True:
-            funcoes.limpar_terminal()
+            menuAdmin.limpar_terminal()
 
-            funcoes.titulo('Escolha o serviço desejado')
+            menuAdmin.titulo('Escolha o serviço desejado')
 
             cursor.execute('''
             SELECT nome, valor, duracao
@@ -201,6 +227,10 @@ def escolherServico(cursor):
             servicosDisponiveis = cursor.fetchall()
 
 
+            if not servicosDisponiveis:
+                input('Nenhum serviço cadastrado! pressione enter para voltar...')
+                break
+
             coluna = [coluna[0] for coluna in cursor.description]
 
             listaDeServico = []
@@ -210,7 +240,7 @@ def escolherServico(cursor):
                 print(f'{servico[0]:<20} {servico[1]:<20}')
                 listaDeServico.append(servico[0])
             
-            escolhaServico = str(input('Digite o nome do serviço desejado: ').strip())
+            escolhaServico = input('Digite o nome do serviço desejado: ').strip()
 
             cursor.execute('''
             SELECT valor, duracao
@@ -221,6 +251,11 @@ def escolherServico(cursor):
             )
 
             resultado = cursor.fetchone()
+
+            if not resultado:
+                input('Digite um dos serviços acima!! pressione enter para escolher novamente...')
+                conexao.rollback()
+                continue
             valor, duracao = resultado
 
             if escolhaServico in listaDeServico:
@@ -233,9 +268,9 @@ def escolherServico(cursor):
 
 def escolherData():
     while True:
-            funcoes.limpar_terminal()
+            limpar_terminal()
 
-            funcoes.titulo('DIAS DISPONIVEIS')
+            titulo('DIAS DISPONIVEIS')
             
             diaAtual = datetime.date.today()
 
@@ -280,17 +315,35 @@ def escolherBarbeiro(cursor):
         ''')
 
     barbeiros =  cursor.fetchall()
-    informacoesColuna = [coluna[0] for coluna in cursor.description]
 
-    funcoes.limpar_terminal()
+    if not barbeiros:
+        input('Não há barbeiros disponíveis! pressione enter para voltar...')
+    else:
+        informacoesColuna = [coluna[0] for coluna in cursor.description]
 
-    funcoes.titulo('BARBEIROS DISPONIVEIS')
+        id_barbeiros = []
 
-    print(f'{informacoesColuna[0]:<30} {informacoesColuna[1]:<30}')
-    for id_barbeiro, nome_barbeiro, _, _ in barbeiros:
-        print(f'{id_barbeiro:<30} {nome_barbeiro:<30}')
-    print('-'*85)
+        limpar_terminal()
+
+        titulo('BARBEIROS DISPONIVEIS')
+
+        print(f'{informacoesColuna[0]:<75} {informacoesColuna[1]}')
+        for id_barbeiro, nome_barbeiro, _, _ in barbeiros:
+            id_barbeiros.append(id_barbeiro)
+            print(f'{id_barbeiro:<75} {nome_barbeiro}')
+        print('-'*85)
         
-    escolhaBarbeiro = input('Digite o ID do barbeiro desejado: ').strip()
+        while True:
+            try:
+                escolhaBarbeiro = int(input('Digite o ID do barbeiro desejado: ').strip())
+
+                if escolhaBarbeiro not in id_barbeiros:
+                    input('ID inválido, pressione enter e digite novamente...')
+                    print(id_barbeiros)
+                else:
+                    break
+            except ValueError:
+                print('Digite apenas números!')
+        
 
     return escolhaBarbeiro

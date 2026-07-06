@@ -1,5 +1,5 @@
-import funcoes
+from menus.menuAdmin import menuAdmin
 
 opcoes = ['Cadastrar Barbeiro', 'Visualizar equipe', 'Agenda geral', 'Sair']
 
-funcoes.menuAdmin(opcoes)
+menuAdmin(opcoes)
